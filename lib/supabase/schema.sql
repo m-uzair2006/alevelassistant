@@ -130,33 +130,64 @@ ALTER TABLE weak_topics ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
 -- Users can only see their own data
+DROP POLICY IF EXISTS "Users can view their own profile" ON user_profiles;
 CREATE POLICY "Users can view their own profile"
   ON user_profiles FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can insert their own profile" ON user_profiles;
+CREATE POLICY "Users can insert their own profile"
+  ON user_profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update their own profile" ON user_profiles;
 CREATE POLICY "Users can update their own profile"
   ON user_profiles FOR UPDATE
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Users can view their own answers" ON answers;
 CREATE POLICY "Users can view their own answers"
   ON answers FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own answers" ON answers;
 CREATE POLICY "Users can insert their own answers"
   ON answers FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can view their own subject preferences" ON user_subject_preferences;
+CREATE POLICY "Users can view their own subject preferences"
+  ON user_subject_preferences FOR SELECT
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert their own subject preferences" ON user_subject_preferences;
+CREATE POLICY "Users can insert their own subject preferences"
+  ON user_subject_preferences FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own subject preferences" ON user_subject_preferences;
+CREATE POLICY "Users can delete their own subject preferences"
+  ON user_subject_preferences FOR DELETE
+  USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view their own chat sessions" ON chat_sessions;
 CREATE POLICY "Users can view their own chat sessions"
   ON chat_sessions FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can view their own chat messages" ON chat_messages;
 CREATE POLICY "Users can view their own chat messages"
   ON chat_messages FOR SELECT
   USING (auth.uid() = user_id);
 
 -- Create indexes for performance
+DROP INDEX IF EXISTS idx_answers_user_subject;
 CREATE INDEX idx_answers_user_subject ON answers(user_id, subject);
+DROP INDEX IF EXISTS idx_chat_sessions_user;
 CREATE INDEX idx_chat_sessions_user ON chat_sessions(user_id);
+DROP INDEX IF EXISTS idx_chat_messages_session;
 CREATE INDEX idx_chat_messages_session ON chat_messages(session_id);
+DROP INDEX IF EXISTS idx_marking_feedback_answer;
 CREATE INDEX idx_marking_feedback_answer ON marking_feedback(answer_id);
+DROP INDEX IF EXISTS idx_weak_topics_user;
 CREATE INDEX idx_weak_topics_user ON weak_topics(user_id, subject);
