@@ -20,6 +20,8 @@ export default async function ProfilePage() {
   }
 
   const userId = session.user.id;
+  console.log(session);
+
 
   const profileResult = await supabase
     .from("user_profiles")
@@ -68,7 +70,7 @@ export default async function ProfilePage() {
               </div>
               <div>
                 <p className="text-sm uppercase tracking-[0.24em] text-muted-foreground">Connected provider</p>
-                <p className="mt-2 text-base font-medium">{session.user.app_metadata?.provider ?? "email/password"}</p>
+                <p className="mt-2 text-base font-medium">{session.user.app_metadata?.provider}</p>
               </div>
               <div className="rounded-3xl border border-border bg-background/70 p-4">
                 <p className="text-sm font-semibold">Tip</p>
