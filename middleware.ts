@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isPublicPreviewHostname } from "@/lib/public-preview";
 
 const PUBLIC_FILE = /\.(.*)$/;
 
@@ -54,6 +55,14 @@ function applyResponseCookies(response: NextResponse, cookies: MiddlewareCookie[
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (pathname.startsWith("/_next") || pathname.startsWith("/favicon.ico") || PUBLIC_FILE.test(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (isPublicPreviewHostname(request.nextUrl.hostname)) {
+    if (pathname.startsWith("/dashboard") || pathname.startsWith("/auth/callback")) {
+      return NextResponse.redirect(new URL("/coming-soon", request.url));
+    }
+
     return NextResponse.next();
   }
 
@@ -116,5 +125,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth", "/auth/"],
+  matcher: ["/dashboard/:path*", "/auth", "/auth/", "/auth/callback", "/auth/callback/:path*"],
 };

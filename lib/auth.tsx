@@ -3,6 +3,7 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { isPublicPreviewBrowser } from "@/lib/public-preview";
 
 function createBrowserSupabaseClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -89,6 +90,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       },
       signInWithGoogle: async () => {
+        if (isPublicPreviewBrowser()) {
+          window.location.assign("/coming-soon");
+          return;
+        }
+
         if (!supabase) return;
         const { error } = await supabase.auth.signInWithOAuth({
           provider: "google",
