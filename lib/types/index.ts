@@ -3,18 +3,13 @@ export type UserProfile = {
   id: string;
   email: string;
   full_name: string;
+  avatar_url: string | null;
+  subjects: Subject[];
   created_at: string;
   updated_at: string;
 };
 
 export type Subject = "physics_9702" | "maths_9709" | "cs_9618";
-
-export type UserSubjectPreference = {
-  id: string;
-  user_id: string;
-  subject: Subject;
-  created_at: string;
-};
 
 // Syllabus Types
 export type Topic = {

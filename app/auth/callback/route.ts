@@ -10,5 +10,7 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  return NextResponse.redirect(new URL("/dashboard", request.url));
+  // Redirect back to auth page to complete onboarding
+  // The client-side auth check will handle redirecting to dashboard if onboarding is complete
+  return NextResponse.redirect(new URL("/auth", request.url));
 }

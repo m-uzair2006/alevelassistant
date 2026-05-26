@@ -2,10 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Header, Layout, Main } from "@/components/layout";
-import { Settings, User } from "lucide-react";
+import { User } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { ProfileForm } from "@/components/dashboard/profile-form";
-import type { Subject, UserProfile } from "@/lib/types";
+import type { UserProfile } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -16,27 +16,18 @@ export default async function ProfilePage() {
   } = await supabase.auth.getSession();
 
   if (!session?.user?.id) {
-    redirect("/auth/login");
+    redirect("/auth");
   }
 
   const userId = session.user.id;
-  console.log(session);
-
 
   const profileResult = await supabase
     .from("user_profiles")
-    .select("id, email, full_name, created_at, updated_at")
+    .select("id, email, full_name, avatar_url, subjects, created_at, updated_at")
     .eq("id", userId)
     .single();
 
   const profileData = profileResult.data as UserProfile | null;
-
-  const { data: preferences } = await supabase
-    .from("user_subject_preferences")
-    .select("subject")
-    .eq("user_id", userId);
-
-  const activeSubjects = (preferences ?? []).map((item) => item.subject as Subject);
 
   return (
     <Layout>
@@ -56,7 +47,7 @@ export default async function ProfilePage() {
 
       <Main className="space-y-8">
         <section className="grid gap-6 lg:grid-cols-[1.5fr_0.8fr]">
-          <ProfileForm profile={profileData ?? null} activeSubjects={activeSubjects} />
+          <ProfileForm profile={profileData ?? null} />
 
           <Card className="p-6 sm:p-8 bg-card/90">
             <CardHeader>

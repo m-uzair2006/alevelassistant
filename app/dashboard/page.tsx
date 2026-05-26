@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Header, Layout, Main } from "@/components/layout";
 import { Activity, BarChart3, Sparkles, Zap, Settings, User } from "lucide-react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { SUBJECTS } from "@/lib/constants/subjects";
+import { SUBJECTS_BY_ID } from "@/lib/constants/subjects";
 import type { Subject } from "@/lib/types";
 
 function mapCookieList(cookieStore: Awaited<ReturnType<typeof cookies>>) {
@@ -48,26 +48,25 @@ export default async function DashboardPage() {
   } = await supabase.auth.getSession();
 
   if (!session?.user?.email) {
-    redirect("/auth/login");
+    redirect("/auth");
   }
 
   const userId = session.user.id;
-  const profileQuery = await supabase.from("user_profiles").select("full_name").eq("id", userId).single();
+  const profileQuery = await supabase
+    .from("user_profiles")
+    .select("full_name, subjects")
+    .eq("id", userId)
+    .single();
   const answersQuery = await supabase
     .from("answers")
     .select("id,subject,question_text,created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(3);
-  const preferencesQuery = await supabase
-    .from("user_subject_preferences")
-    .select("subject")
-    .eq("user_id", userId);
 
   const displayName = profileQuery.data?.full_name ?? session.user.email;
   const recentAnswers = answersQuery.data ?? [];
-  const selectedSubjects = (preferencesQuery.data ?? []).map((item) => item.subject as Subject);
-  const subjectCards = Object.values(SUBJECTS);
+  const selectedSubjects = (profileQuery.data?.subjects ?? []) as Subject[];
 
   return (
     <Layout>
@@ -161,7 +160,8 @@ export default async function DashboardPage() {
             <CardContent className="space-y-4">
               {recentAnswers.length > 0 ? (
                 recentAnswers.map((answer) => {
-                  const subjectName = SUBJECTS[answer.subject as Subject]?.name ?? answer.subject;
+                  const subjectName =
+                    SUBJECTS_BY_ID[answer.subject as Subject]?.name ?? answer.subject;
                   const submittedDate = new Date(answer.created_at).toLocaleDateString();
 
                   return (
@@ -195,8 +195,10 @@ export default async function DashboardPage() {
                 <div className="grid gap-3">
                   {selectedSubjects.map((subject) => (
                     <div key={subject} className="rounded-2xl border border-border p-4">
-                      <p className="font-medium">{SUBJECTS[subject]?.name ?? subject}</p>
-                      <p className="text-sm text-muted-foreground">{SUBJECTS[subject]?.description}</p>
+                      <p className="font-medium">{SUBJECTS_BY_ID[subject]?.name ?? subject}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {SUBJECTS_BY_ID[subject]?.description}
+                      </p>
                     </div>
                   ))}
                 </div>

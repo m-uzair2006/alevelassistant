@@ -10,20 +10,16 @@ import { SUBJECTS } from "@/lib/constants/subjects";
 
 type ProfileFormProps = {
   profile: UserProfile | null;
-  activeSubjects: Subject[];
 };
 
-export function ProfileForm({ profile, activeSubjects }: ProfileFormProps) {
+export function ProfileForm({ profile }: ProfileFormProps) {
   const [fullName, setFullName] = useState(profile?.full_name ?? "");
-  const [selectedSubjects, setSelectedSubjects] = useState<Subject[]>(activeSubjects ?? []);
+  const [selectedSubjects, setSelectedSubjects] = useState<Subject[]>(profile?.subjects ?? []);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  const subjectEntries = useMemo(
-    () => Object.entries(SUBJECTS) as [Subject, { name: string; code: string; description: string }][],
-    [],
-  );
+  const subjectEntries = useMemo(() => SUBJECTS, []);
 
   const supabase = getBrowserSupabaseClient();
 
@@ -54,10 +50,29 @@ export function ProfileForm({ profile, activeSubjects }: ProfileFormProps) {
 
     const user = sessionData.session.user;
 
+    const normalizedName = fullName.trim();
+    if (!normalizedName) {
+      setIsSaving(false);
+      setError("Please enter your full name.");
+      return;
+    }
+
+    if (selectedSubjects.length === 0) {
+      setIsSaving(false);
+      setError("Please choose at least one subject.");
+      return;
+    }
+
     const { error: profileError } = await supabase.from("user_profiles").upsert({
       id: user.id,
       email: user.email,
-      full_name: fullName || null,
+      full_name: normalizedName,
+      avatar_url:
+        user.user_metadata?.avatar_url ??
+        user.user_metadata?.picture ??
+        profile?.avatar_url ??
+        null,
+      subjects: selectedSubjects,
     });
 
     if (profileError) {
@@ -66,24 +81,9 @@ export function ProfileForm({ profile, activeSubjects }: ProfileFormProps) {
       return;
     }
 
-    if (selectedSubjects.length > 0) {
-      const preferences = selectedSubjects.map((subject) => ({
-        user_id: user.id,
-        subject,
-      }));
-
-      const { error: prefError } = await supabase.from("user_subject_preferences").upsert(preferences, {
-        onConflict: "user_id,subject",
-      });
-
-      if (prefError) {
-        setIsSaving(false);
-        setError(prefError.message);
-        return;
-      }
-    }
-
-    const { error: authError } = await supabase.auth.updateUser({ data: { full_name: fullName || undefined } });
+    const { error: authError } = await supabase.auth.updateUser({
+      data: { full_name: normalizedName },
+    });
     if (authError) {
       setIsSaving(false);
       setError(authError.message);
@@ -114,19 +114,19 @@ export function ProfileForm({ profile, activeSubjects }: ProfileFormProps) {
         <div className="space-y-3">
           <p className="text-sm font-medium">Preferred subjects</p>
           <div className="grid gap-3 sm:grid-cols-2">
-            {subjectEntries.map(([subject, meta]) => (
+            {subjectEntries.map((subject) => (
               <button
-                key={subject}
+                key={subject.value}
                 type="button"
-                onClick={() => handleToggleSubject(subject)}
+                onClick={() => handleToggleSubject(subject.value)}
                 className={`rounded-2xl border p-4 text-left transition hover:border-primary ${
-                  selectedSubjects.includes(subject)
+                  selectedSubjects.includes(subject.value)
                     ? "border-primary bg-primary/10"
                     : "border-border bg-background"
                 }`}
               >
-                <p className="font-semibold">{meta.name}</p>
-                <p className="text-sm text-muted-foreground">{meta.description}</p>
+                <p className="font-semibold">{subject.name}</p>
+                <p className="text-sm text-muted-foreground">{subject.description}</p>
               </button>
             ))}
           </div>

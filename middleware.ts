@@ -4,6 +4,22 @@ import { createServerClient } from "@supabase/ssr";
 
 const PUBLIC_FILE = /\.(.*)$/;
 
+type MiddlewareCookieOptions = {
+  path?: string;
+  domain?: string;
+  httpOnly?: boolean;
+  secure?: boolean;
+  sameSite?: boolean | "lax" | "strict" | "none";
+  expires?: string | Date;
+  maxAge?: number;
+};
+
+type MiddlewareCookie = {
+  name: string;
+  value: string;
+  options?: MiddlewareCookieOptions;
+};
+
 function mapRequestCookies(req: NextRequest) {
   return req.cookies.getAll().map((cookie) => ({
     name: cookie.name,
@@ -11,7 +27,7 @@ function mapRequestCookies(req: NextRequest) {
   }));
 }
 
-function applyResponseCookies(response: NextResponse, cookies: Array<{ name: string; value: string; options?: Record<string, any> }>) {
+function applyResponseCookies(response: NextResponse, cookies: MiddlewareCookie[]) {
   cookies.forEach(({ name, value, options }) => {
     if (!value) {
       response.cookies.delete({ name });
@@ -25,7 +41,10 @@ function applyResponseCookies(response: NextResponse, cookies: Array<{ name: str
       domain: options?.domain,
       httpOnly: options?.httpOnly,
       secure: options?.secure,
-      sameSite: options?.sameSite as "lax" | "strict" | "none" | undefined,
+      sameSite:
+        options?.sameSite === false
+          ? undefined
+          : (options?.sameSite as "lax" | "strict" | "none" | undefined),
       expires: options?.expires ? new Date(options.expires) : undefined,
       maxAge: options?.maxAge,
     });
@@ -57,22 +76,45 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (pathname === "/auth/login" || pathname === "/auth/signup") {
-    if (session) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-    return response;
-  }
+  const hasCompletedOnboarding = async (userId: string) => {
+    const { data: profile, error: profileError } = await supabase
+      .from("user_profiles")
+      .select("full_name, subjects")
+      .eq("id", userId)
+      .maybeSingle();
 
+    if (profileError) {
+      console.error("Failed to check onboarding status in middleware", {
+        profileError,
+      });
+      return false;
+    }
+
+    return Boolean(profile?.full_name?.trim()) && (profile?.subjects?.length ?? 0) > 0;
+  };
+
+  // Redirect to /auth if accessing protected routes without session
   if (pathname.startsWith("/dashboard")) {
     if (!session) {
-      return NextResponse.redirect(new URL("/auth/login", request.url));
+      return NextResponse.redirect(new URL("/auth", request.url));
     }
+  }
+
+  // Redirect to dashboard if already authenticated and trying to access auth
+  if (pathname === "/auth" || pathname === "/auth/") {
+    if (session) {
+      const onboardingComplete = await hasCompletedOnboarding(session.user.id);
+
+      if (onboardingComplete) {
+        return NextResponse.redirect(new URL("/dashboard", request.url));
+      }
+    }
+    return response;
   }
 
   return response;
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/auth/login", "/auth/signup"],
+  matcher: ["/dashboard/:path*", "/auth", "/auth/"],
 };

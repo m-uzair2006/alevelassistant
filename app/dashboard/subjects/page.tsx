@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Header, Layout, Main } from "@/components/layout";
-import { BookOpen, ChevronLeft, Sparkles } from "lucide-react";
+import { BookOpen, ChevronLeft } from "lucide-react";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { SUBJECTS } from "@/lib/constants/subjects";
 
@@ -16,10 +16,10 @@ export default async function SubjectsPage() {
   } = await supabase.auth.getSession();
 
   if (!session?.user?.email) {
-    redirect("/auth/login");
+    redirect("/auth");
   }
 
-  const subjectList = Object.values(SUBJECTS);
+  const subjectList = SUBJECTS;
 
   return (
     <Layout>

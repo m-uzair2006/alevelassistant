@@ -1,29 +1,36 @@
 import type { Subject } from "@/lib/types";
 
-export const SUBJECTS: Record<
-  Subject,
+export interface SubjectItem {
+  value: Subject;
+  name: string;
+  code: string;
+  description: string;
+}
+
+export const SUBJECTS: SubjectItem[] = [
   {
-    name: string;
-    code: string;
-    description: string;
-  }
-> = {
-  physics_9702: {
-    name: "Physics A Level",
+    value: "physics_9702",
+    name: "Physics 9702",
     code: "9702",
     description: "Cambridge Physics",
   },
-  maths_9709: {
-    name: "Mathematics A Level",
+  {
+    value: "maths_9709",
+    name: "Mathematics 9709",
     code: "9709",
     description: "Cambridge Mathematics",
   },
-  cs_9618: {
-    name: "Computer Science A Level",
+  {
+    value: "cs_9618",
+    name: "Computer Science 9618",
     code: "9618",
     description: "Cambridge Computer Science",
   },
-};
+];
+
+export const SUBJECTS_BY_ID = Object.fromEntries(
+  SUBJECTS.map((subject) => [subject.value, subject]),
+) as Record<Subject, SubjectItem>;
 
 export const COMMAND_WORDS = {
   define: "Give the meaning of",
